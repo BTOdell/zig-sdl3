@@ -2265,11 +2265,14 @@ pub const Device = packed struct {
     pub fn getSwapchainTextureFormat(
         self: Device,
         window: video.Window,
-    ) TextureFormat {
-        return @enumFromInt(c.SDL_GetGPUSwapchainTextureFormat(
+    ) !TextureFormat {
+        const ret = c.SDL_GetGPUSwapchainTextureFormat(
             self.value,
             window.value,
-        ));
+        );
+        if (ret == c.SDL_GPU_TEXTUREFORMAT_INVALID)
+            try errors.set("Invalid texture format, did you claim the window?");
+        return @enumFromInt(ret);
     }
 
     /// Creates a GPU context.
@@ -2348,7 +2351,7 @@ pub const Device = packed struct {
         transfer_buffer: TransferBuffer,
         cycle: bool,
     ) ![*]u8 {
-        return @alignCast(@ptrCast(try errors.wrapCallNull(*anyopaque, c.SDL_MapGPUTransferBuffer(
+        return @ptrCast(@alignCast(try errors.wrapCallNull(*anyopaque, c.SDL_MapGPUTransferBuffer(
             self.value,
             transfer_buffer.value,
             cycle,
